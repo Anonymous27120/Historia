@@ -1,0 +1,33 @@
+name: Extraire le zip
+on: push
+
+permissions:
+  contents: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Décompresser si un zip est présent
+        run: |
+          zipfile=$(ls *.zip 2>/dev/null | head -n1)
+          if [ -z "$zipfile" ]; then
+            echo "Aucun zip trouvé, rien à faire."
+            exit 0
+          fi
+          unzip -o "$zipfile" -d tmp_extract
+          if [ -d tmp_extract/historia ]; then
+            cp -r tmp_extract/historia/. .
+          else
+            cp -r tmp_extract/. .
+          fi
+          rm -rf tmp_extract
+          rm -f "$zipfile"
+      - name: Commit et push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Extraction automatique du zip"
+          git push
